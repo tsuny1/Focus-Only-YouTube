@@ -1,0 +1,32 @@
+{
+   "manifest_version":2,
+   "name":"chromeExtension",
+   "version":"0.1",
+   "content_scripts":[
+      {
+         "matches":[
+        "*://www.youtube.com/*"
+         ],
+         "js":[
+            "jquery-3.2.1.js",
+            "arrive.js","content.js"]
+      }
+   ],
+   "browser_action":{
+      "default_icon":"icon.png",
+      "default_popup": "index.html"
+   },
+   "background":{
+      "scripts":[
+         "background.js"
+      ]
+   },
+   "permissions":[
+      "tabCapture",
+      "tabs",
+      "storage",
+      "desktopCapture",
+      "webNavigation",
+        "activeTab"
+  ]
+}
