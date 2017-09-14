@@ -30,10 +30,7 @@ var observer = new MutationObserver(function(mutations) {
         var parent = endVideo[0].parentNode
         parent.removeChild(endVideo[0])
       }
-      if(!items && feedRemoved) {
-        observer.disconnect()
-      }
-      // do things to your newly added nodes here
+
       var node = mutation.addedNodes[i]
     }
   })

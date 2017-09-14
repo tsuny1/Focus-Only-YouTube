@@ -1,75 +1,67 @@
-chrome.browserAction.onClicked.addListener(function(tab) {
-
-  chrome.tabs.query({
-    active: true,
-    currentWindow: true
-  }, function(tabs) {
-    var activeTab = tabs[0];
-    chrome.tabs.sendMessage(activeTab.id, {
-      "message": "clicked_browser_action"
-    });
-  });
-
-});
-var counter = 0;
-
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 
+  chrome.storage.local.get(null, function(history) {
 
-  if (tab.url.includes("youtube.com/watch?") && changeInfo.status == "complete") {
+    if (history["last_url"] != tab.url && tab.url.includes("youtube.com/watch?") && changeInfo.status == "complete") {
 
-    chrome.tabs.sendMessage(tab.id, {action: "open_dialog_box"}, function(response) {
-
-    });
-    chrome.storage.local.get(null, function(st) {
-      console.log(st)
-      var obj = {};
+      chrome.tabs.sendMessage(tab.id, { action: "open_dialog_box"});
       var key = new Date().getTime()
 
       var viewedAlready = 0;
-      for (object in st) {
-        if (!(st[object] instanceof Date) || (st[object] - key) >= 3600 * 1000 * 24) {
-          chrome.storage.local.remove(object)
+      var newHistory = history["history"];
+      for (object in newHistory) {
+        if (typeof newHistory[object] !== "number" || (newHistory[object] - key) >= 3600 * 1000 * 24) {
+          delete newHistory[object]
         } else {
           viewedAlready++;
         }
       }
+      chrome.storage.local.set({
+        "history": newHistory
+      });
       if (viewedAlready >= 3) {
-        var response = httpGetAsync("https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=classical+music&key=AIzaSyBJGxP_859uX1nYSZ45_2PUssQI_Vqq43Q",
-          function(text) {
-            var responseObject = JSON.parse(text);
-            responseObject.items[rand].id.videoId
-            var myNewUrl = "https://www.youtube.com/watch?v=" + responseObject.items[rand].id.videoId
+        reroute(tab);
+      } else {
 
-          chrome.tabs.update(tab.id, {
-              url: myNewUrl
-            });
+        if (history["history"]) {
+
+          history["history"][String(tab.url)] = key;
+          chrome.storage.local.set({
+            "history": history["history"]
           });
+
+        } else {
+          history[String(tab.url)] = key
+
+          chrome.storage.local.set({
+            "history": history
+          });
+        }
       }
-
-      obj[tab.url] = key
-
-      chrome.storage.local.set(obj, function(st) {
-        chrome.storage.local.get(null, function(st) {})
-
-
-      })
-
-
-    })
-
-  }
-
+    }
+  });
 });
 
-Object.size = function(obj) {
-  var size = 0,
-    key;
-  for (key in obj) {
-    if (obj.hasOwnProperty(key)) size++;
-  }
-  return size;
-};
+
+function reroute(tab) {
+  var response = httpGetAsync("https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=classical+music&key=AIzaSyBJGxP_859uX1nYSZ45_2PUssQI_Vqq43Q",
+    function(text) {
+      var responseObject = JSON.parse(text);
+      var rand = Math.floor(Math.random() * 25);
+      if (responseObject.items[rand].id.videoId) {
+        var myNewUrl = "https://www.youtube.com/watch?v=" + responseObject.items[rand].id.videoId
+
+
+        chrome.tabs.update(tab.id, {
+          url: myNewUrl
+        });
+        chrome.storage.local.set({
+          "last_url": myNewUrl
+        });
+
+      }
+    });
+}
 
 function httpGetAsync(theUrl, callback) {
   var xmlHttp = new XMLHttpRequest();
